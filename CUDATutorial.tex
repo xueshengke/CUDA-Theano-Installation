@@ -1,0 +1,202 @@
+\documentclass[UTF8,a4paper,12pt]{article}
+\usepackage[left=2.50cm, right=2.50cm, top=2.50cm, bottom=2.50cm]{geometry}
+
+%\usepackage{times}
+%\usepackage{mathpazo}
+%\usepackage{fourier}
+\usepackage{charter}
+%\usepackage{helvet}
+
+\usepackage{amsmath, amsfonts, amssymb}	% math equations, symbols
+\usepackage[english]{babel}
+\usepackage{color}		% color content
+\usepackage{graphicx}	% import figures
+\usepackage{url}		% hyperlinks
+\usepackage{bm}			% bold type for equations
+\usepackage{hyperref}	% bookmarks
+\hypersetup{bookmarks, unicode}	% unicode
+\usepackage{listings}
+\usepackage{xcolor}
+\lstset{frame = shadowbox, basicstyle = \small,
+%	numbers = left, 
+%	numberstyle = \small, 
+	stepnumber = 1,
+	breaklines = true, tabsize = 4
+}
+
+\newcommand{\code}[1]{{\color{blue} \textsf{{\$} {#1}} } }
+
+\title{Tutorial for CUDA 7.5 Installation \\ Based on CentOS 7}
+\author{ Xue Shengke \thanks{Contact e-mail: xueshengke@zju.edu.cn} }
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{Prepare CentOS 7 distribution, with Python 2.7.* already installed}
+Internet connection available is also required.
+
+\section{Install NVIDIA graphic driver for Linux system}
+NVIDIA graphic driver for Linux system will be installed individually before the CUDA installation, so we download the driver according to its actual type and proper operating system (Linux, 64bit / 32bit). \\
+Taking GT 640 as an instance, we download NVIDIA-Linux-x86\_64-361.42.run.~Open a terminal (better as root),
+\begin{lstlisting}
+# uname -r
+3.10.0-327.el7.x86_64 ; the distribution varies from person to person, so remember it 
+# yum install gcc kernel-devel kernel-headers
+\end{lstlisting}
+Add two lines in both files as follows,
+\begin{lstlisting}
+# vim /etc/modprobe.d/blacklist.conf
+# vim /lib/modprobe.d/dist-blacklist.conf
+...
+blacklist nouveau
+options nouveau modeset=0
+\end{lstlisting}
+Remake initramfs image,
+\begin{lstlisting}
+# mv /boot/initramfs-$(uname -r).img /boot/initramfs-$(uname -r).img.bak
+# dracut /boot/initramfs-$(uname -r).img $(uname -r)
+# rm /boot/initramfs-$(uname -r).img.bak
+\end{lstlisting}
+Convert to text mode (runlevel 3), i.e., manipulate in command line window.
+\begin{lstlisting}
+# systemctl set-default multi-user.target
+# init 3
+# reboot	; this command is not necessary
+\end{lstlisting}
+Here, we find that the screen turns into command line with low resolution  apparently.~Switch to the directory where the driver file (NVIDIA-Linux-x86\_64-361.42.run) exists.
+\begin{lstlisting}
+# cd /to/your/directory/
+# ./NVIDIA-Linux-x86_64-361.42.run --kernel-source-path=/usr/src/kernels/3.10.0-327.el7.x86_64  -k $(uname -r)
+\end{lstlisting}
+Steps as follows:
+\begin{lstlisting}
+LICENSE ... -accept
+Building kernel modules ...
+Install NVIDIA's 32-bit compatibility libraries. -yes
+...
+WARNING: Unable to perform the runtime configuration check for 32-bit library ... Assuming successful installation. -ok
+Would you like to run the nvidia-xconfig utility to automatically update you X configuration file ... -yes -ok
+\end{lstlisting}
+Convert back to graphical mode (runlevel 5),
+\begin{lstlisting}
+# systemctl set-default graphical.target
+# init 5
+\end{lstlisting}
+At this time, we will see the display shows graphical window with very high definition resolution.~Now check graphic driver has been successfully installed in our system.
+\begin{lstlisting}
+# lspci |grep -i vga
+01:00.0 VGA compatible controller: NVIDIA Corporation GK208 [GeForce GT 640 Rev. 2] (rev al)
+\end{lstlisting}
+
+\section{Download RUN version of CUDA 7.5 toolkit}
+Download it from its official website.~Choose Linux - x86\_64 - CentOS - 7 - runfile(local) -  Download(1.1 GB).
+
+\section{Install full version of CUDA 7.5 toolkit (Toolkit, Samples)}
+Fisrt, we choose `no' for Graphics Driver.~Caution ! Do not choose `yes' to install OpenGL, for which may conflicts with GNOME, causing  the crash of desktop.
+\begin{lstlisting}
+# ./cuda_7.5.18_linux.run
+...
+Install NVIDIA Accelerated Graphics Driver ... -n
+Install OpenGL ... -n
+Install CUDA 7.5 Toolkit ... -y
+Toolkit location /usr/local/cuda-7.5 ... [Enter]
+Install a symbolic link at ... -y
+Install CUDA 7.5 Samples ... -y
+Enter CUDA Samples Location ... [Enter]
+...
+Finished 
+Driver : Not Selected
+Toolkit : Installed in /usr/local/cuda-7.5
+Samples : Installed in /root, but missing recommended libraries
+***WARNING: Incomplete installation!
+\end{lstlisting}
+Remember the location of directory of NVIDIA\_CUDA-7.5\_Samples, for we need to check whether our CUDA  works below.
+
+\section{Add path to environment variables}
+Edit /etc/profile to update PATH and LD\_LIBRARY\_PATH.~Modify /etc/profile like this,
+\begin{lstlisting}
+...
+export PATH=/usr/local/cuda-7.5/bin:$PATH
+export LD_LIBRARY_PATH=/usr/local/cuda-7.5/lib64:$LD_LIBRARY_PATH
+# source /etc/profile
+\end{lstlisting}
+
+\section{Upgrade build compilers}
+Update G++/GCC compiler.
+\begin{lstlisting}
+# yum install build-essential
+# gcc -v
+# make -v
+\end{lstlisting}
+
+\section{Compile CUDA samples and check CUDA driver}
+\begin{lstlisting}
+# cd /to/your/path/NVIDIA_CUDA-7.5_Samples/
+# make
+\end{lstlisting}
+After a long time compilation, none of errors occur, which suggests CUDA has been successfully installed.
+\begin{lstlisting}
+# nvcc -V
+nvcc : NVIDIA (R) cuda compiler driver
+
+# nvidia-smi
+A table containing NVIDIA-SMI: 361.42 Driver Version: 361.42 appears.
+GPU Name ...
+Processes ...
+\end{lstlisting}
+
+\section{Install recommended packages and libraries}
+Note that pip, nose and OpenBLAS are installed separately through .tar.gz files.~They may be downloaded from website such as https://github.com.
+\begin{lstlisting}
+# yum install numpy, scipy, python-devel, git
+# tar -zxf nose-1.3.7.tar.gz
+# cd nose-1.3.7/
+# python setup.py install
+
+# tar -zxf pip-8.1.2.tar.gz
+# cd pip-8.1.2/
+# python setup.py install
+
+# tar -zxf  OpenBLAS-0.2.18.tar.gz
+# cd OpenBLAS-0.2.18/
+# make
+\end{lstlisting}
+
+\section{Install Theano}
+Only a small library the Theano is, but it requires the network with an appropriate status to download it.
+\begin{lstlisting}
+# pip install Theano
+\end{lstlisting}
+
+\section{Make /root/.theanorc file}
+\begin{lstlisting}
+# vim /root/.theanorc
+...
+[global]
+device=gpu
+floatX=float32
+root=/usr/local/cuda-7.5
+[nvcc]
+fastmath = True
+[blas]
+ldflags = -lopenblas
+\end{lstlisting}
+Save this file in path /root, and do not move it to other places.
+
+\section{Test Theano library}
+Run testing\_theano.py file (accompanied with this tutorial) using python.
+\begin{lstlisting}
+# sudo python testing_theano.py
+...
+Using gpu device 0: GeForce GT 640 ...
+Looping 1000 times took 0.351630 seconds
+Result is CudaNdarray ...
+Numpy result is [...
+Used the gpu
+\end{lstlisting}
+From the information printed above, we see python is able to use GPU to run the program now.
+
+\section*{All complete ! So far We have successfully deployed CUDA 7.5 toolkit in our CentOS 7.}
+\end{document}
+

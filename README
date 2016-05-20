@@ -1,0 +1,5 @@
+This project introduces how to install CUDA 7.5 Toolkit and Theano in CenOS 7.
+Require an existing Linux distribution CentOS 7 and NVIDIA Graphics Card hardware that supports the GPU Acceleration.
+The available network is also necessary during the installation.
+Most of the guide instructions are in the .pdf file. Just follow the steps given in it.
+By Xue Shengke.
