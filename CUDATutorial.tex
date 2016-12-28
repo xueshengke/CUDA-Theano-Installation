@@ -54,7 +54,7 @@ options nouveau modeset=0
 \end{lstlisting}
 Remake initramfs image,
 \begin{lstlisting}
-# mv /boot/initramfs-$(uname -r).img /boot/initramfs-$(uname -r).img.bak
+# cp /boot/initramfs-$(uname -r).img /boot/initramfs-$(uname -r).img.bak
 # dracut /boot/initramfs-$(uname -r).img $(uname -r)
 # rm /boot/initramfs-$(uname -r).img.bak
 \end{lstlisting}
